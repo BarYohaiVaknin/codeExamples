@@ -1,0 +1,28 @@
+mongodb:
+  architecture: replicaset
+  auth:
+    rootPassword: "example"
+  replicaCount: 3
+  fullnameOverride: mongodb
+
+app:
+  name: app
+  replicaCount: 1
+  imageURL: some-container-registery.com/baryvee-app:1.0.0
+service:
+  port: 80
+  targetPort: 80
+
+ingress:
+  create: true
+  name: app-ingress  
+
+
+resources:
+  limits:   
+    memory: "128Mi"
+    cpu: "100m"
+  requests:
+    memory: "64Mi"
+    cpu: "50m"
+

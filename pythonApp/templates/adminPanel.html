@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+    <form id="form" action="/adminPanel" method="POST">
+        <label for="wellcomeSentance"><h1 style="font-size:250%;text-decoration:underline">Admin Panel</h1></label>
+        <form id="form">
+        <h1>Hello Admin, Which Action Would You Like To Perform?</h1>
+            <h3>Get All:</h3>
+            <input type="radio" id="getAllUsers" name="getAllUsers" value="getAllUsers">
+            <label for="getAllUsers">Users</label><br>
+            <input type="radio" id="getAllTasks" name="getAllTasks" value="getAllTasks">
+            <label for="getAllTasks">Tasks</label><br>
+            <h3>Create:</h3>
+            <input type="radio" id="createUser" name="createUser" value="createUser">
+            <label for="creatUser">User</label><br>
+            <input type="radio" id="createTask" name="createTask" value="createTask">
+            <label for="createTask">Task</label><br>
+            <h3>Update:</h3>
+            <input type="radio" id="updateUserProgress" name="updateUserProgress" value="updateUserProgress">
+            <label for="updateUserProgress">User Progress</label><br>
+            <input type="radio" id="updateTask" name="updateTask" value="updateTask">
+            <label for="updateTask">Task</label><br>
+            <h3>Delete:</h3>
+            <input type="radio" id="deleteUser" name="deleteUser" value="deleteUser">
+            <label for="deleteUser">User</label><br>
+            <input type="radio" id="deleteTask" name="deleteTask" value="deleteTask">
+            <label for="deleteTask">Task</label><br>
+            <h3></h3>
+        <div><button type="submit">Submit</button></div>
+        <img src="http://www.develeap.com/wp-content/uploads/2019/12/develeap-1200x630.jpg" alt="Logo" width="550" height="250">
+        <div class="bottomRight">
+            Bootcamp 15
+        </div>
+        <style>
+            img{
+                position: absolute;
+                right: 0px;
+                bottom: 0px;
+            }
+            .bottomRight {
+            position: absolute;
+            bottom: 70px;
+            right: 360px; 
+            font-family:'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+            font-size: 24px;
+            font-weight: bold;
+            }
+        </style>
+</html>

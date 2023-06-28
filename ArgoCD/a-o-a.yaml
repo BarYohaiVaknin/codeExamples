@@ -1,0 +1,16 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: a-o-a
+  namespace: default
+spec:
+  project: default
+  source: 
+    repoURL:  'git@gitlab.com:baryvee/portfolio-gitops.git'
+    targetRevision: HEAD
+    path: a-o-a
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+      automated: {}

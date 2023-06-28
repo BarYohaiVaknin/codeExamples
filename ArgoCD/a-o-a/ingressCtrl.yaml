@@ -1,0 +1,19 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ingress-control
+  namespace: default
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: default
+  source: 
+    chart:  ingress-nginx
+    repoURL:  https://kubernetes.github.io/ingress-nginx
+    targetRevision: 4.3.0
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+      automated:
+        selfHeal: true

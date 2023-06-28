@@ -1,0 +1,22 @@
+ingress:
+  enabled: true
+  ingressClassName: nginx
+  path: /grafana
+  hosts:
+    - my.dns.com
+
+grafana.ini:
+  server:
+    domain: my.dns.com
+    root_url: "%(protocol)s://%(domain)s:%(http_port)s/grafana/"
+    serve_from_sub_path: true
+
+persistence:
+  type: pvc
+  enabled: true
+  accessModes:
+    - ReadWriteOnce
+  size: 10Gi
+  finalizers:
+    - kubernetes.io/pvc-protection
+  existingClaim: grafana-pvc

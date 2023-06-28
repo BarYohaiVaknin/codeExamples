@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: grafana
+  namespace: default
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec: 
+  project: default
+  sources: 
+    - repoURL: 'https://grafana.github.io/helm-charts'
+      chart:  grafana
+      targetRevision: 6.57.0
+      helm:
+          valueFiles:
+          - "$myRepo/grafanaValues.yaml"
+    - repoURL:  'git@github.com:BarYohaiVaknin/codeExamples/ArgoCD/a-o-a.git'
+      ref: myRepo
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+      automated: {}
+      syncOptions:
+        - ServerSideApply=true

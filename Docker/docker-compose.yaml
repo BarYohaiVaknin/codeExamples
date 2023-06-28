@@ -1,0 +1,28 @@
+version: '3.1'
+services:
+
+  mongodb:
+    image: mongo:6.0.2
+    hostname: mongodb
+    container_name: mongodb
+    networks:
+      - CINet
+    ports:
+      - 27017:27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+
+  app:
+    image: baryvee-app:1.0.0
+    hostname: app
+    container_name: app
+    networks:
+      - CINet
+    ports:
+      - 8888:80
+    
+networks:
+  CINet:
+    external: true
+      

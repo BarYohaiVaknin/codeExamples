@@ -1,0 +1,162 @@
+pipeline {
+    agent any
+    
+    environment {
+        gitopsGitRepoURL = 'git@github.com:BarYohaiVaknin/codeExamples/ArgoCD.git'
+        applicationGitRepoURL = 'git@github.com:BarYohaiVaknin/codeExamples/pythonApp.git'
+        ecrURL = 'some-container-registery.com/' 
+        repoName = 'baryvee-app:' 
+        firstTag = '1.0.0'
+        nextPatch = 0
+    }//End OF environment
+
+    stages {
+        stage('Clone Stage') {
+            steps {
+                script {
+                    checkout([$class: 'GitSCM', branches: [[name: '**']], extensions: [], userRemoteConfigs: [[credentialsId: 'gitlab-offical', url: 'git@gitlab.com:baryvee/portfolio-application.git']]])
+                    if (env.BRANCH_NAME ==~ 'main') {
+                        dir('gitopsDir') {
+                            checkout([$class: 'GitSCM', branches: [[name: '**']], extensions: [], userRemoteConfigs: [[credentialsId: 'gitlab-offical', url: 'git@gitlab.com:baryvee/portfolio-gitops.git']]])
+                        }//End OF gitopsDir
+                    }//End OF if
+                }//End OF script
+            }//End OF steps
+        }//End OF Clone Stage
+        
+        stage("Tag Calculation Stage") {
+            when {
+                expression {
+                    if (env.BRANCH_NAME ==~ 'main') {
+                        return true
+                    }//End OF if
+                    else {
+                        appTag = firstTag
+                        return false
+                    }//End OF else
+                }//End OF expression
+            }//End OF when  
+            steps {
+                script {
+                    println("############ Calculating Tag ############")
+                    sh 'git fetch --tags'
+                    tagsCount = sh(returnStdout:true, script:""" git tag -l | wc -l """).trim()
+                    if(tagsCount != '0') {
+                        currentPatch = sh(returnStdout:true, script:""" git tag -l | cut -d "." -f3 | sort -n | tail -1 """).trim()
+                        nextPatch = (currentPatch.toInteger() + 1).toString()
+                        appTag = '1.0.' + "${nextPatch}".trim()
+                        previousTag = '1.0.' + "${currentPatch}".trim()
+                        println("The next tag is: "+appTag)
+                        sh """ sed -i 's/image: ${repoName}${firstTag}/image: ${repoName}${appTag}/' docker-compose.yaml """
+                    }//End OF if
+                    else {
+                        appTag = firstTag
+                    }//End OF else
+                }//End OF script
+            }//End OF steps
+        }//End OF Tag Calculation Stage
+
+        stage ('Build Stage') {
+            steps {
+                script {
+                    println("############ Building Image ############")
+                    sh """ docker build . -t=${repoName}${appTag} """
+                }//End OF Script
+            }//End OF steps
+        }//End OF Build Stage
+
+        stage ('Unit Test Stage') {
+            steps {
+                script {
+                    println("############ Testing App (Unit Test) ############")
+                    sh ' docker-compose up --build --detach '
+                    sh ' sleep 3 ' // extra 3 seconds for the services to "boot"
+                    sh ' bash tests.sh ut '
+                }//End OF script
+            }//End OF steps
+        }//End OF Unit Test Stage
+        stage ('E2E Test Stage') {
+            steps {
+                script {
+                    println("############ Testing App (E2E Test) ############")
+                    sh ' bash tests.sh e2e '
+                    sh ' docker-compose down '
+                }//End OF script
+            }//End OF steps
+        }//End OF E2E Test Stage
+
+        stage ('Tagging Stage') {
+            when {
+                branch 'main'
+            }//End OF when
+            steps {
+                script { 
+                    println("############ Tagging Image ############")
+                    sh """ docker tag ${repoName}${appTag} ${ecrURL}${repoName}${appTag} """ 
+                    sh """ git tag ${appTag} """
+                    sh """ git push --tags """                 
+                }//End OF script
+            }//End OF steps
+        }//End OF Taggging Stage
+
+        stage ('Publish Stage') {
+            when {
+                branch 'main'
+            }//End OF when
+            steps {
+                script {
+                    println("############ Publishing Image To ECR ############")
+                    docker.withRegistry("https://${ecrURL}", 'ecr:eu-west-1:baryveeAWSCredentials') {
+                        sh """ docker push ${ecrURL}${repoName}${appTag} """
+                    }//End OF docker.withRegistry
+                }//End OF Script
+            }//End OF steps
+        }//End OF Publish Stage
+
+        stage ('Deploy Stage') {
+            when {
+                branch 'main'
+            }//End OF when  
+            steps {
+                script {
+                    dir('gitopsDir') {
+                        sh 'git checkout main'
+                        def valuesData = readYaml file: 'app/values.yaml'
+                        if (valuesData.app.imageURL != env.ecrURL+env.repoName+appTag) {
+                            println("############ Deploying Changes On GitOps Repo ############")
+                            valuesData.app.imageURL = env.ecrURL+env.repoName+appTag
+                            writeYaml overwrite: true, file: 'app/values.yaml', data: valuesData
+                            sh """ #!/bin/bash
+                            git commit -am "imageURL Changed To ${repoName}${appTag}"
+                            git push """
+                        }//End OF if
+                        else {
+                            println("############ GitOps Repo Is Already Up To Date! ############")
+                        }//End OF else
+                    }//End OF dir 
+                }//End OF script
+            }//End OF steps 
+        }//End OF Deploy Stage
+    }//End OF Stages
+
+    post {
+        failure {
+            emailext body: """ Hello,\nPipeline for branch ${env.GIT_BRANCH} has been failed\n""",
+            subject: """ Pipeline No.${env.BUILD_ID} has been failed. """,
+            to: 'baryvee@gmail.com'
+        }//End OF failure
+        success {
+            emailext body: """ Hello,\nPipeline for branch ${env.GIT_BRANCH} passed successfully.\n""",
+            subject: """ Pipeline No.${env.BUILD_ID} passed successfully. """,
+            to: 'baryvee@gmail.com'
+        }//End OF failure
+        always {    
+            script {
+                println("############ Cleaning Up ############")
+                cleanWs()
+                sh """ docker rmi -f ${repoName}${appTag} """
+            }//END OF script
+        }//End OF always
+    }//End OF post
+
+}//End OF pipeline
